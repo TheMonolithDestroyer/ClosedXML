@@ -826,8 +826,10 @@ namespace ClosedXML.Excel
             String v = value.Trim();
             if (v.EndsWith("pt"))
                 return Double.Parse(v.Substring(0, v.Length - 2), CultureInfo.InvariantCulture) / 72.0;
+            else if (v.EndsWith("mm"))
+                return Double.Parse(v.Substring(0, v.Length - 2), CultureInfo.InvariantCulture) / 25.4;
             else
-                return Double.Parse(v.Substring(0, v.Length - 2), CultureInfo.InvariantCulture);
+                return Double.Parse(v, CultureInfo.InvariantCulture);
         }
 
         private static void LoadTextBoxStyle<T>(IXLDrawing<T> xlDrawing, XAttribute attStyle)
