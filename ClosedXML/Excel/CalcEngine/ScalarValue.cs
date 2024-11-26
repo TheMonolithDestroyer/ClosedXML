@@ -199,6 +199,30 @@ namespace ClosedXML.Excel.CalcEngine
             };
         }
 
+        /// <summary>
+        /// Parse text to a scalar value. Generally used in formulas or autofilter.
+        /// </summary>
+        /// <param name="text">Text to parse.</param>
+        /// <param name="culture">Culture used for parsing numbers or dates.</param>
+        /// <returns>Parsed scalar value.</returns>
+        public static ScalarValue Parse(string text, CultureInfo culture)
+        {
+            if (text is null)
+                return Blank;
+            if (text == String.Empty)
+                return Blank;
+            if (StringComparer.OrdinalIgnoreCase.Equals("TRUE", text))
+                return true;
+            if (StringComparer.OrdinalIgnoreCase.Equals("FALSE", text))
+                return false;
+            if (TextToNumber(text, culture).TryPickT0(out var number, out _))
+                return number;
+            if (XLErrorParser.TryParseError(text, out var error))
+                return error;
+
+            return text;
+        }
+
         public static OneOf<double, XLError> TextToNumber(string text, CultureInfo culture)
         {
             if (string.IsNullOrWhiteSpace(text))
@@ -318,13 +342,46 @@ namespace ClosedXML.Excel.CalcEngine
 
         public bool TryPickNumber(out double number)
         {
+            return TryPickNumber(out number, out _);
+        }
+
+        public bool TryPickNumber(out double number, out XLError error)
+        {
             if (_index == NumberValue)
             {
                 number = _number;
+                error = default;
                 return true;
             }
 
             number = default;
+            error = IsError ? _error : XLError.IncompatibleValue;
+            return false;
+        }
+
+        /// <summary>
+        /// Try to pick a number (interpret blank as number 0).
+        /// </summary>
+        public bool TryPickNumberOrBlank(out double number, out XLError error)
+        {
+            if (_index == NumberValue)
+            {
+                number = _number;
+                error = default;
+                return true;
+            }
+
+            // This is mostly useful for unified approach area + array. Literal array
+            // can't contain blanks, but area can. In most cases, blank is interpreted as 0.
+            if (_index == BlankValue)
+            {
+                number = 0;
+                error = default;
+                return true;
+            }
+
+            number = default;
+            error = IsError ? _error : XLError.IncompatibleValue;
             return false;
         }
 
